@@ -1,8 +1,9 @@
 library(tidyverse)
 library(mgcv)
 library(lubridate)
+library(extrafont)
 
-setwd("D:\\Dropbox\\My projects\\scratchpad\\covid\\excess_deaths")
+extrafont::loadfonts(device="win")
 
 # Mortality data: https://github.com/akarlinsky/world_mortality
 
@@ -41,8 +42,11 @@ weekly_data %>%
   mutate(period=as.numeric(row.names(.)),
          dif = deaths-deaths_pred,
          dif_color = ifelse(dif>=0, 1, 2),
-         week_dates=as.Date("2020-01-01")+weeks(time),
-         dif_color = factor(dif_color, levels=c(1, 2), labels=c("პროგნოზირებული", "ემპირიული"))
+         week_dates=as.Date(paste0(time, "/1/", year), "%m/%d/%Y"),
+         which_is_more = ifelse(deaths>deaths_pred, deaths, deaths_pred),
+         location = which_is_more-abs(dif/2),
+         # week_dates=as.Date("2020-01-01")+months(time),
+         dif_color = factor(dif_color, levels=c(1, 2), labels=c("პროგნოზირებული", "ემპირიული")),
          )%>%
   ggplot()+
   geom_segment(aes(y=deaths, yend=deaths_pred, x=week_dates, xend=week_dates, color=factor(dif_color)),
@@ -50,69 +54,27 @@ weekly_data %>%
   scale_color_manual(values=c("red", "blue"))+
   geom_point(aes(week_dates, deaths), color="red", size=2)+
   geom_point(aes(week_dates, deaths_pred), color="blue", size=2)+
+  geom_text(aes(week_dates, location, label=dif, family = "FiraGO"), nudge_x = 10)+
+  geom_vline(xintercept=as.Date("2020-09-01"),
+             color="grey", linetype = "longdash")+
   annotate("rect", xmin=as.Date("2020-03-31"), xmax=as.Date("2020-05-23"), ymin=-Inf, ymax=Inf,
-           alpha=.3, fill="lightblue")+
-  annotate("text", x=as.Date("2020-04-27"), y=600, label="საგანგებო მდგომარეობა")+
+           alpha=.3, fill="lightblue", family = "FiraGO")+
+  annotate("text", x=as.Date("2020-04-27"), y=600, label="საგანგებო მდგომარეობა", family = "FiraGO")+
+  annotate("text", x=as.Date("2020-09-01"), y=600, label="სექტემბერი", family = "FiraGO")+
   scale_x_date(date_labels = "%m")+
-  ylim(0, 1200)+
+  # ylim(0, 1200)+
   theme_bw()+
   labs(
-    title = "ჭარბი სიკვდილიანობა, 2020 წლის იანვარი-ივლისი",
+    title = "ჭარბი სიკვდილიანობა, 2020 წლის იანვარი-დეკემბერი",
     y = "სიკვდილიანობა",
        x = "თვეები")+
   theme(
+    text = element_text(family= "FiraGO"),
     legend.position = "none",
     axis.title.x = element_blank()
   )
 
-ggsave("excess_deaths.png", device = "png", height=5, width=8)
-
-weekly_data %>%
-  group_by(year)%>%
-  mutate(week_dates=as.Date(paste0(year, "-01-01"))+weeks(time),)%>%
-  ungroup()%>%
-  ggplot(aes(week_dates, deaths, color=factor(year)))+
-  geom_smooth(method = "gam", alpha=0.3)+
-  geom_line(aes(group=year), size=1, alpha=0.4)+
-  scale_x_date(date_labels = "%m")+
-  facet_wrap(~year, scales = "free_x")+
-  theme_bw()+
-  labs(title = "გარდაცვალების ყოველკვირეული მაჩვენებლები, 2015-2020",
-       y = "სიკვდილიანობა",
-       x = "თვეები")+
-  theme(
-    legend.position = "none",
-    # axis.title.x = element_blank()
-  )
-
-ggsave("yearly_deaths.png", device = "png", height=5, width=8)
-
-
-weekly_data %>%
-  group_by(year)%>%
-  mutate(week_dates=as.Date(paste0(year, "-01-01"))+weeks(time),)%>%
-  ungroup()%>%
-  ggplot(aes(week_dates, deaths))+
-  geom_smooth(method = "gam", alpha=0.3)+
-  geom_line(aes(group=year), size=1, alpha=0.4)+
-  scale_x_date(date_labels = "%m")+
-  theme_bw()+
-  labs(
-    title = "გარდაცვალების ყოველკვირეული მაჩვენებლები, 2015-2020",
-    subtitle = "ცალკეული წლის მიხედვით",
-    y = "სიკვდილიანობა",
-       x = "თვეები")+
-  theme(
-    legend.position = "none",
-    # axis.title.x = element_blank()
-  )
-
-ggsave("total_deaths.png", device = "png", height=5, width=8)
-
-sum(pred_ed$deaths_pred) - sum(weekly_data$deaths[weekly_data$year == 2020])
-
-
-### English charts
+ggsave("ka_excess_deaths.png", device = "png", height=5, width=8)
 
 weekly_data %>%
   filter(year==2020)%>%
@@ -122,8 +84,11 @@ weekly_data %>%
   mutate(period=as.numeric(row.names(.)),
          dif = deaths-deaths_pred,
          dif_color = ifelse(dif>=0, 1, 2),
-         week_dates=as.Date("2020-01-01")+weeks(time),
-         dif_color = factor(dif_color, levels=c(1, 2), labels=c("პროგნოზირებული", "ემპირიული"))
+         week_dates=as.Date(paste0(time, "/1/", year), "%m/%d/%Y"),
+         which_is_more = ifelse(deaths>deaths_pred, deaths, deaths_pred),
+         location = which_is_more-abs(dif/2),
+         # week_dates=as.Date("2020-01-01")+months(time),
+         dif_color = factor(dif_color, levels=c(1, 2), labels=c("Predicted", "Empirical")),
   )%>%
   ggplot()+
   geom_segment(aes(y=deaths, yend=deaths_pred, x=week_dates, xend=week_dates, color=factor(dif_color)),
@@ -131,63 +96,36 @@ weekly_data %>%
   scale_color_manual(values=c("red", "blue"))+
   geom_point(aes(week_dates, deaths), color="red", size=2)+
   geom_point(aes(week_dates, deaths_pred), color="blue", size=2)+
+  geom_text(aes(week_dates, location, label=dif, family = "FiraGO"), nudge_x = 10)+
+  geom_vline(xintercept=as.Date("2020-09-01"),
+             color="grey", linetype = "longdash")+
   annotate("rect", xmin=as.Date("2020-03-31"), xmax=as.Date("2020-05-23"), ymin=-Inf, ymax=Inf,
-           alpha=.3, fill="lightblue")+
-  annotate("text", x=as.Date("2020-04-27"), y=600, label="Lockdown")+
-  # scale_x_date(date_labels = "%m")+
-  ylim(0, 1200)+
+           alpha=.3, fill="lightblue", family = "FiraGO")+
+  annotate("text", x=as.Date("2020-04-27"), y=600, label="Lockdown", family = "FiraGO")+
+  annotate("text", x=as.Date("2020-09-01"), y=600, label="September", family = "FiraGO")+
+  scale_x_date(date_labels = "%m")+
+  # ylim(0, 1200)+
   theme_bw()+
   labs(
-    title = "Excess mortality, January-July 2020",
+    title = "Excess mortality, January-December, 2020",
     y = "Deaths",
     x = "Months")+
   theme(
+    text = element_text(family= "FiraGO"),
     legend.position = "none",
     axis.title.x = element_blank()
   )
 
-ggsave("excess_deaths_en.png", device = "png", height=5, width=8)
-
-weekly_data %>%
-  group_by(year)%>%
-  mutate(week_dates=as.Date(paste0(year, "-01-01"))+weeks(time),)%>%
-  ungroup()%>%
-  ggplot(aes(week_dates, deaths, color=factor(year)))+
-  geom_smooth(method = "gam", alpha=0.3)+
-  geom_line(aes(group=year), size=1, alpha=0.4)+
-  scale_x_date(date_labels = "%b")+
-  facet_wrap(~year, scales = "free_x")+
-  theme_bw()+
-  labs(title = "Weekly deaths, 2015-2020",
-       subtitle = "By year",
-       y = "Deaths",
-       x = "Months")+
-  theme(
-    legend.position = "none",
-    # axis.title.x = element_blank()
-  )
-
-ggsave("yearly_deaths_en.png", device = "png", height=6, width=13)
-
-
-weekly_data %>%
-  group_by(year)%>%
-  mutate(week_dates=as.Date(paste0(year, "-01-01"))+weeks(time),)%>%
-  ungroup()%>%
-  ggplot(aes(week_dates, deaths))+
-  geom_smooth(method = "gam", alpha=0.3)+
-  geom_line(aes(group=year), size=1, alpha=0.4)+
-  # scale_x_date(date_labels = "%b")+
-  theme_bw()+
-  labs(
-    title = "Weekly deaths, 2015-2020",
-    y = "Count number of deaths",
-    x = "Years")+
-  theme(
-    legend.position = "none",
-    # axis.title.x = element_blank()
-  )
-
-ggsave("total_deaths_en.png", device = "png", height=5, width=8)
+ggsave("en_excess_deaths.png", device = "png", height=5, width=8)
 
 sum(pred_ed$deaths_pred) - sum(weekly_data$deaths[weekly_data$year == 2020])
+
+weekly_data %>%
+  filter(time >= 10)%>%
+  group_by(year)%>%
+  summarize(sum(deaths))
+
+pred_ed %>%
+  filter(time >= 10)%>%
+  summarize(sum(deaths_pred))
+

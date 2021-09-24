@@ -13,7 +13,7 @@ weekly_data <- read_csv("https://raw.githubusercontent.com/akarlinsky/world_mort
 train <- weekly_data[weekly_data$year < 2020, ] %>%
   mutate(period = as.numeric(row.names(.)))
 
-test <- weekly_data[weekly_data$year == 2020, ] %>%
+test <- weekly_data[weekly_data$year >= 2020, ] %>%
   mutate(period = as.numeric(row.names(.)))
 
 # Adjust for seasonality as in Weinberger et al, 2020 and predict potential number of deaths
@@ -28,14 +28,21 @@ pred_ed <- predict(pred_ed_mod, type='response', newdata=test) %>%
   data.frame()%>%
   setNames("deaths_pred")%>%
   mutate(time=as.numeric(row.names(.)),
-         year=2020,
+         year=case_when(
+           time > 12 ~ 2021,
+           T ~ 2020
+         ),
+         time = case_when(
+           time > 12 ~ time-12,
+           T ~ as.numeric(time)
+         ),
          deaths_pred=round(deaths_pred, 0))
 
 #  Edit this if you want to build charts with Georgian labels (only UNIX* systems)
 # Sys.setlocale(category = "LC_ALL", locale = "Georgian")
 
 weekly_data %>%
-  filter(year==2020)%>%
+  filter(year>=2020)%>%
   # mutate(weeks=paste0(year, stringi::stri_pad_left(time, 2, 0)))%>%
 
   left_join(pred_ed, by=c("year", "time"))%>%
@@ -54,18 +61,21 @@ weekly_data %>%
   scale_color_manual(values=c("red", "blue"))+
   geom_point(aes(week_dates, deaths), color="red", size=2)+
   geom_point(aes(week_dates, deaths_pred), color="blue", size=2)+
-  geom_text(aes(week_dates, location, label=dif, family = "FiraGO"), nudge_x = 10)+
-  geom_vline(xintercept=as.Date("2020-09-01"),
+  geom_text(aes(week_dates, location, label=dif, family = "FiraGO"), nudge_x = 10, size=3)+
+  geom_vline(xintercept=as.Date("2020-10-31"),
+             color="grey", linetype = "longdash")+
+  geom_vline(xintercept=as.Date("2021-06-01"),
              color="grey", linetype = "longdash")+
   annotate("rect", xmin=as.Date("2020-03-31"), xmax=as.Date("2020-05-23"), ymin=-Inf, ymax=Inf,
            alpha=.3, fill="lightblue", family = "FiraGO")+
-  annotate("text", x=as.Date("2020-04-27"), y=600, label="საგანგებო მდგომარეობა", family = "FiraGO")+
-  annotate("text", x=as.Date("2020-09-01"), y=600, label="სექტემბერი", family = "FiraGO")+
-  scale_x_date(date_labels = "%m")+
-  # ylim(0, 1200)+
+  annotate("text", x=as.Date("2020-04-27"), y=1500, label="საგანგებო მდგომარეობა", family = "FiraGO", angle=90)+
+  annotate("text", x=as.Date("2020-10-31"), y=1500, label="არჩევნები", family = "FiraGO", angle=90)+
+  annotate("text", x=as.Date("2021-06-01"), y=1500, label="შეზღუდვების მოხსნა", family = "FiraGO", angle=90)+
+  scale_x_date(date_labels = "%m/%y")+
+  ylim(0, 7000)+
   theme_bw()+
   labs(
-    title = "ჭარბი სიკვდილიანობა, 2020 წლის იანვარი-დეკემბერი",
+    title = "ჭარბი სიკვდილიანობა, 2020 წლის იანვარი- 2021 წლის ივნისი",
     y = "სიკვდილიანობა",
        x = "თვეები")+
   theme(
@@ -77,7 +87,7 @@ weekly_data %>%
 ggsave("ka_excess_deaths.png", device = "png", height=5, width=8)
 
 weekly_data %>%
-  filter(year==2020)%>%
+  filter(year>=2020)%>%
   # mutate(weeks=paste0(year, stringi::stri_pad_left(time, 2, 0)))%>%
   
   left_join(pred_ed, by=c("year", "time"))%>%
@@ -96,18 +106,21 @@ weekly_data %>%
   scale_color_manual(values=c("red", "blue"))+
   geom_point(aes(week_dates, deaths), color="red", size=2)+
   geom_point(aes(week_dates, deaths_pred), color="blue", size=2)+
-  geom_text(aes(week_dates, location, label=dif, family = "FiraGO"), nudge_x = 10)+
-  geom_vline(xintercept=as.Date("2020-09-01"),
+  geom_text(aes(week_dates, location, label=dif, family = "FiraGO"), nudge_x = 10, size=3)+
+  geom_vline(xintercept=as.Date("2020-10-31"),
+             color="grey", linetype = "longdash")+
+  geom_vline(xintercept=as.Date("2021-06-01"),
              color="grey", linetype = "longdash")+
   annotate("rect", xmin=as.Date("2020-03-31"), xmax=as.Date("2020-05-23"), ymin=-Inf, ymax=Inf,
            alpha=.3, fill="lightblue", family = "FiraGO")+
-  annotate("text", x=as.Date("2020-04-27"), y=600, label="Lockdown", family = "FiraGO")+
-  annotate("text", x=as.Date("2020-09-01"), y=600, label="September", family = "FiraGO")+
-  scale_x_date(date_labels = "%m")+
-  # ylim(0, 1200)+
+  annotate("text", x=as.Date("2020-04-27"), y=1500, label="Lockdown", family = "FiraGO", angle=90)+
+  annotate("text", x=as.Date("2020-10-31"), y=1500, label="Elections", family = "FiraGO", angle=90)+
+  annotate("text", x=as.Date("2021-06-01"), y=1500, label="Restrictions are removed", family = "FiraGO", angle=90)+
+  scale_x_date(date_labels = "%m/%y")+
+  ylim(0, 7000)+
   theme_bw()+
   labs(
-    title = "Excess mortality, January-December, 2020",
+    title = "Excess mortality, January 2020 - June 2021",
     y = "Deaths",
     x = "Months")+
   theme(
@@ -118,14 +131,17 @@ weekly_data %>%
 
 ggsave("en_excess_deaths.png", device = "png", height=5, width=8)
 
-sum(pred_ed$deaths_pred) - sum(weekly_data$deaths[weekly_data$year == 2020])
+sum(pred_ed$deaths_pred[pred_ed$year == 2020]) - sum(weekly_data$deaths[weekly_data$year == 2020])
+sum(pred_ed$deaths_pred[pred_ed$year == 2021]) - sum(weekly_data$deaths[weekly_data$year == 2021])
+
 
 weekly_data %>%
-  filter(time >= 10)%>%
+  filter(time <= 6)%>%
   group_by(year)%>%
   summarize(sum(deaths))
 
 pred_ed %>%
-  filter(time >= 10)%>%
+  filter(time <= 6)%>%
   summarize(sum(deaths_pred))
+
 
